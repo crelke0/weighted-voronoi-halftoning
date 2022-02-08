@@ -1,6 +1,7 @@
 import math
 import random
 from PIL import Image, ImageDraw
+import numpy as np
 
 class Vector:
   # constructor for Vector
@@ -42,7 +43,7 @@ class KDNode:
     self.left = left
     self.right = right
     g = id(self)*51234517%256
-    self.color = (g, g, g)
+    self.color = g
 
   # creates tree from list of points
   # points {list}
@@ -130,7 +131,6 @@ def main():
   width = 500
   height = 500
   img = Image.new(mode="RGB", size=(width, height), color=(255, 255, 255))
-  draw = ImageDraw.Draw(img)
   
   points = []
   point_count = 100
@@ -139,11 +139,13 @@ def main():
   # draw.point(points, fill=(0, 0, 0))
   tree = KDNode.create_tree(points)
 
+  pixels = np.empty([width, height], dtype=np.uint8)
   for x in range(width):
     for y in range(height):
       nn, _ = tree.find_nn(Vector(x, y))
-      draw.point(((x, y)), fill=nn.color)
-  
+      pixels[x, y] = nn.color
+      # draw.point(((x, y)), fill=nn.color)
+  img = Image.fromarray(pixels)
   img.show()
 
 if __name__ == "__main__":
