@@ -1,6 +1,6 @@
 import math
 import random
-from PIL import Image
+from PIL import Image, ImageDraw
 
 class Vector:
   # constructor for Vector
@@ -41,12 +41,14 @@ class KDNode:
     self.axis = axis
     self.left = left
     self.right = right
+    g = id(self)*51234517%256
+    self.color = (g, g, g)
 
   # creates tree from list of points
   # points {list}
   # return {KDNode}
   @staticmethod
-  def createTree(points, depth=0):
+  def create_tree(points, depth=0):
     # base case
     if len(points) == 0:
       return None
@@ -54,80 +56,95 @@ class KDNode:
     
     # sample points for estimating median
     sample = []
-    sampleSize = len(points)//(math.log(10, len(points)) + 1)
-    for _ in range(sampleSize):
-      sample.append(points[random.randint(len(points))])
+    sample_size = math.ceil(len(points)/(math.log(len(points), 10) + 1))
+    for _ in range(sample_size):
+      sample.append(points[random.randint(0, len(points) - 1)])
 
     # function returns x or y depending on this nodes axis
-    axisCoord = None
+    axis_coord = None
     if axis == 0:
-      axisCoord = lambda a: a.x
+      axis_coord = lambda a: a.x
     else:
-      axisCoord = lambda a: a.x
+      axis_coord = lambda a: a.y
     
-    sample.sort(key=axisCoord)
-    median = sample[sampleSize//2]
+    sample.sort(key=axis_coord)
+    median = sample[sample_size//2]
 
     # filter points left and right of median
-    medianAxis = axisCoord(median)
-    leftOfMedian = list(filter(lambda a: axisCoord(a) < medianAxis))
-    rightOfMedian = list(filter(lambda a: axisCoord(a) >= medianAxis and a != median))
+    median_axis = axis_coord(median)
+    left_of_median = list(filter(lambda a: axis_coord(a) < median_axis, points))
+    right_of_median = list(filter(lambda a: axis_coord(a) >= median_axis and a != median, points))
     
     # make left and right subtrees
-    left = KDNode.createTree(leftOfMedian, depth + 1)
-    right = KDNode.createTree(rightOfMedian, depth + 1)
+    left = KDNode.create_tree(left_of_median, depth + 1)
+    right = KDNode.create_tree(right_of_median, depth + 1)
 
     return KDNode(median, axis, left, right)
     
   # finds the nearest neighbor of a point
   # point {Vector} the point to find the nearest neighbor of
   # return {tuple} (nearest neighbor {KDNode}, squared distance {float})
-  def findNN(self, point):
-    smallest = (self.pos.x - point.pos.x)**2 + (self.pos.y - point.pos.y)**2
-    nearestNeighbor = self
+  def find_nn(self, point):
+    smallest = (self.pos.x - point.x)**2 + (self.pos.y - point.y)**2
+    nearest_neighbor = self
     if self.left == None and self.right == None:
-      return nearestNeighbor, smallest
+      return nearest_neighbor, smallest
 
     # function returns x or y depending on this nodes axis
-    axisCoord = None
+    axis_coord = None
     if self.axis == 0:
-      axisCoord = lambda a: a.x
+      axis_coord = lambda a: a.x
     else:
-      axisCoord = lambda a: a.y
+      axis_coord = lambda a: a.y
 
     # determine which subtree should be checked first
     first = self.left
     other = self.right
-    if axisCoord(point) > axisCoord(self.pos):
+    if axis_coord(point) > axis_coord(self.pos):
       first = self.right
       other = self.left
     if first == None:
       first, other = other, first
 
-    firstNN, firstSmallest = first.findNN(point)
-    if firstSmallest < smallest:
-      smallest = firstSmallest
-      nearestNeighbor = firstNN
+    first_nn, first_smallest = first.find_nn(point)
+    if first_smallest < smallest:
+      smallest = first_smallest
+      nearest_neighbor = first_nn
 
-      # function for finding the distance to this nodes line that splits space
-    axisDistance = None
+    # function for finding the distance to this nodes line that splits space
+    axis_distance = None
     if self.axis == 0:
-      axisDistance = lambda a, b: abs(a.y - b.y)
+      axis_distance = lambda a, b: abs(a.y - b.y)
     else:
-      axisDistance = lambda a, b: abs(a.x - b.x)
+      axis_distance = lambda a, b: abs(a.x - b.x)
 
-    if firstSmallest > axisDistance(self.pos, first.pos) and other != None:
-      otherNN, otherSmallest = other.findNN(point)
-      if otherSmallest < smallest:
-        smallest = otherSmallest
-        nearestNeighbor = otherNN
+    if first_smallest > axis_distance(self.pos, first.pos) and other != None:
+      other_nn, other_smallest = other.find_nn(point)
+      if other_smallest < smallest:
+        smallest = other_smallest
+        nearest_neighbor = other_nn
 
-    return nearestNeighbor, smallest
-
-    
+    return nearest_neighbor, smallest
 
 def main():
-  pass
+  width = 500
+  height = 500
+  img = Image.new(mode="RGB", size=(width, height), color=(255, 255, 255))
+  draw = ImageDraw.Draw(img)
+  
+  points = []
+  point_count = 100
+  for _ in range(point_count):
+    points.append(Vector(random.random()*width, random.random()*height))
+  # draw.point(points, fill=(0, 0, 0))
+  tree = KDNode.create_tree(points)
+
+  for x in range(width):
+    for y in range(height):
+      nn, _ = tree.find_nn(Vector(x, y))
+      draw.point(((x, y)), fill=nn.color)
+  
+  img.show()
 
 if __name__ == "__main__":
   main()
