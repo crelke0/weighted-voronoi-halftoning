@@ -1,5 +1,9 @@
 from PIL import Image
-from numpy import left_shift
+
+class Vector:
+  def __init__(self, x=0, y=0):
+    self.x = x
+    self.y = y
 
 class KDNode:
   def __init__(self, pos, axis, left, right):
