@@ -52,30 +52,79 @@ class KDNode:
       return None
     axis = depth%2
     
-    # estimate median
+    # sample points for estimating median
     sample = []
     sampleSize = len(points)//(math.log(10, len(points)) + 1)
     for _ in range(sampleSize):
       sample.append(points[random.randint(len(points))])
-    getAxis = None
+
+    # function returns x or y depending on this nodes axis
+    axisCoord = None
     if axis == 0:
-      getAxis = lambda a: a.x
+      axisCoord = lambda a: a.x
     else:
-      getAxis = lambda a: a.x
-    sample.sort(key=getAxis)
+      axisCoord = lambda a: a.x
+    
+    sample.sort(key=axisCoord)
     median = sample[sampleSize//2]
 
     # filter points left and right of median
-    medianAxis = getAxis(median)
-    leftOfMedian = list(filter(lambda a: getAxis(a) < medianAxis))
-    rightOfMedian = list(filter(lambda a: getAxis(a) >= medianAxis and a != median))
+    medianAxis = axisCoord(median)
+    leftOfMedian = list(filter(lambda a: axisCoord(a) < medianAxis))
+    rightOfMedian = list(filter(lambda a: axisCoord(a) >= medianAxis and a != median))
     
     # make left and right subtrees
     left = KDNode.createTree(leftOfMedian, depth + 1)
     right = KDNode.createTree(rightOfMedian, depth + 1)
 
     return KDNode(median, axis, left, right)
-      
+    
+  # finds the nearest neighbor of a point
+  # point {Vector} the point to find the nearest neighbor of
+  # return {tuple} (nearest neighbor {KDNode}, squared distance {float})
+  def findNN(self, point):
+    smallest = (self.pos.x - point.pos.x)**2 + (self.pos.y - point.pos.y)**2
+    nearestNeighbor = self
+    if self.left == None and self.right == None:
+      return nearestNeighbor, smallest
+
+    # function returns x or y depending on this nodes axis
+    axisCoord = None
+    if self.axis == 0:
+      axisCoord = lambda a: a.x
+    else:
+      axisCoord = lambda a: a.y
+
+    # determine which subtree should be checked first
+    first = self.left
+    other = self.right
+    if axisCoord(point) > axisCoord(self.pos):
+      first = self.right
+      other = self.left
+    if first == None:
+      first, other = other, first
+
+    firstNN, firstSmallest = first.findNN(point)
+    if firstSmallest < smallest:
+      smallest = firstSmallest
+      nearestNeighbor = firstNN
+
+      # function for finding the distance to this nodes line that splits space
+    axisDistance = None
+    if self.axis == 0:
+      axisDistance = lambda a, b: abs(a.y - b.y)
+    else:
+      axisDistance = lambda a, b: abs(a.x - b.x)
+
+    if firstSmallest > axisDistance(self.pos, first.pos) and other != None:
+      otherNN, otherSmallest = other.findNN(point)
+      if otherSmallest < smallest:
+        smallest = otherSmallest
+        nearestNeighbor = otherNN
+
+    return nearestNeighbor, smallest
+
+    
 
 def main():
   pass
