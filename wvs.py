@@ -16,7 +16,19 @@ class Vector:
     self.x, self.y = args
 
   def __add__(self, other):
-    return Vector([self.x + other.x, self.y + other.y])
+    return Vector(self.x + other.x, self.y + other.y)
+
+  def __sub__(self, other):
+    return Vector(self.x - other.x, self.y - other.y)
+
+  def __mul__(self, n):
+    return Vector(self.x*n, self.y*n)
+
+  def __truediv__(self, n):
+    return Vector(self.x/n, self.y/n)
+
+  def __floordiv__(self, n):
+    return Vector(self.x//n, self.y//n)
 
 class KDNode:
   # constructor for KDNode
