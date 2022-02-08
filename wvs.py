@@ -4,16 +4,19 @@ from PIL import Image
 
 class Vector:
   # constructor for Vector
-  # lst {list} the list of values for the axis (can be length 0, 1, or 2)
-  def __init__(self, lst=None):
-    if lst == None:
+  # args {*} inputting nothing results in (0, 0), inputing "a" results in (a, a), inputting "a, b" results in (a, b)
+  def __init__(self, *args):
+    if len(args) == 0:
       self.x = 0
       self.y = 0
       return
-    if len(lst) == 1:
-      self.x = self.y = lst[0]
+    if len(args) == 1:
+      self.x = self.y = args[0]
       return
-    self.x, self.y = lst
+    self.x, self.y = args
+
+  def __add__(self, other):
+    return Vector([self.x + other.x, self.y + other.y])
 
 class KDNode:
   # constructor for KDNode
