@@ -4,11 +4,16 @@ from PIL import Image
 
 class Vector:
   # constructor for Vector
-  # x {float} x value of coordinate
-  # y {float} y value of coordinate
-  def __init__(self, x=0, y=0):
-    self.x = x
-    self.y = y
+  # lst {list} the list of values for the axis (can be length 0, 1, or 2)
+  def __init__(self, lst=None):
+    if lst == None:
+      self.x = 0
+      self.y = 0
+      return
+    if len(lst) == 1:
+      self.x = self.y = lst[0]
+      return
+    self.x, self.y = lst
 
 class KDNode:
   # constructor for KDNode
