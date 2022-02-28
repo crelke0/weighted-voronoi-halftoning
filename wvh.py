@@ -115,24 +115,49 @@ class KDNode:
 
     return nn
 
+def get_pdf(pixels):
+  def pdf(x, y):
+    r, g, b = pixels[x, y]
+    return 1 - (r + g + b)/765
+  return pdf
+
+def relax_points(tree, width, height, pdf):
+  sums = {}
+  counts = {}
+  for x in range(width):
+    for y in range(height):
+      nn = tree.find_nn(Vector(x, y))
+      i = id(nn)
+      if i not in sums.keys():
+        sums[i] = Vector(0, 0)
+        counts[i] = 0
+      sums[i] += Vector(x, y)*pdf(x, y)
+      counts[i] += 1
+  points = []
+  for sv, cv in zip(sums.values(), counts.values()):
+    points.append(sv/cv)
+  return KDNode.create_tree(points)
+
 def main():
   with Image.open("picture.png") as input_img:
     input_pixels = input_img.load()
-  width, height = input_pixels.shape
-  
+    width, height = input_img.size
+  pdf = get_pdf(input_pixels)
   points = []
   point_count = 100
   for _ in range(point_count):
     points.append(Vector(random.random()*width, random.random()*height))
   tree = KDNode.create_tree(points)
+  tree = relax_points(tree, width, height, pdf)
 
-  pixels = np.empty([width, height], dtype=np.uint8)
-  for x in range(width):
-    for y in range(height):
-      nn = tree.find_nn(Vector(x, y))
-      pixels[x, y] = nn.color
-  res = Image.fromarray(pixels)
-  res.show()
+
+  # pixels = np.empty([width, height], dtype=np.uint8)
+  # for x in range(width):
+  #   for y in range(height):
+  #     nn = tree.find_nn(Vector(x, y))
+  #     pixels[x, y] = nn.color
+  # res = Image.fromarray(pixels)
+  # res.show()
 
 if __name__ == "__main__":
   main()
