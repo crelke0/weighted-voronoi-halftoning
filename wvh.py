@@ -91,20 +91,26 @@ class KDNode:
     find_sq_dist = lambda a, b: (a.x - b.x)**2 + (a.y - b.y)**2
     best_sq_dist = find_sq_dist(self.pos, target)
     nn = self
+
+    # base case
     if self.left == None and self.left == None:
       return self
+
+    # determine subtree to check first
     first_subtree = self.right
     second_subtree = self.left
     if self.right == None or target.at_axis(axis) < self.pos.at_axis(axis):
       first_subtree = self.left
       second_subtree = self.right
 
+    # check first subtree
     first_nn = first_subtree.find_nn(target, depth + 1)
     first_sq_dist = find_sq_dist(first_nn.pos, target)
     if first_sq_dist < best_sq_dist:
       best_sq_dist = first_sq_dist
       nn = first_nn
 
+    # check second subtree if necessary
     axis_sq_dist = (first_nn.pos.at_axis(axis) - target.at_axis(axis))**2
     if second_subtree != None and axis_sq_dist < first_sq_dist:
       second_nn = second_subtree.find_nn(target, depth + 1)
@@ -115,41 +121,73 @@ class KDNode:
 
     return nn
 
+  def display(self, draw, r, s):
+    bound = (self.pos.x*s - r, self.pos.y*s - r, self.pos.x*s + r, self.pos.y*s + r)
+    draw.ellipse(bound, fill=(0, 0, 0))
+    if self.left != None:
+      self.left.display(draw, r, s)
+    if self.right != None:
+      self.right.display(draw, r, s)
+
+# creates a probability density function (ranges from 255 to 0. 255 in dark regions, 0 in light regions)
+# pixels {list} the input image's pixels
+# return {function} the probability density function
 def get_pdf(pixels):
   def pdf(x, y):
     r, g, b = pixels[x, y]
-    return 1 - (r + g + b)/765
+    return 255 - (r + g + b)/3
   return pdf
 
+# relaxes points (moves them to the weighted center of their site)
+# tree {KDNode} the tree to be relaxed
+# width {int} width of image
+# height {int} height of image
+# pdf {function} probability density function
 def relax_points(tree, width, height, pdf):
-  sums = {}
-  counts = {}
+  vector_sums = {}
+  total_sums = {}
   for x in range(width):
     for y in range(height):
       nn = tree.find_nn(Vector(x, y))
       i = id(nn)
-      if i not in sums.keys():
-        sums[i] = Vector(0, 0)
-        counts[i] = 0
-      sums[i] += Vector(x, y)*pdf(x, y)
-      counts[i] += 1
+      if i not in vector_sums.keys():
+        vector_sums[i] = Vector(0, 0)
+        total_sums[i] = 0
+      n = pdf(x, y)
+      vector_sums[i] += Vector(x, y)*n
+      total_sums[i] += n
   points = []
-  for sv, cv in zip(sums.values(), counts.values()):
-    points.append(sv/cv)
+  for v1, v2 in zip(vector_sums.values(), total_sums.values()):
+    points.append(v1/v2)
+  print(len(points))
   return KDNode.create_tree(points)
 
 def main():
+  # read input picture
   with Image.open("picture.png") as input_img:
     input_pixels = input_img.load()
     width, height = input_img.size
   pdf = get_pdf(input_pixels)
+
+  # initializes seeds
   points = []
-  point_count = 100
+  point_count = 3000
   for _ in range(point_count):
     points.append(Vector(random.random()*width, random.random()*height))
   tree = KDNode.create_tree(points)
-  tree = relax_points(tree, width, height, pdf)
 
+  # relaxes points
+  iterations = 10
+  for _ in range(iterations):
+    tree = relax_points(tree, width, height, pdf)
+
+  # display dots
+  scale = 2
+  radius = 2
+  res = Image.new("RGB", (width*scale, height*scale), (255, 255, 255))
+  draw = ImageDraw.Draw(res)
+  tree.display(draw, radius, scale)
+  res.show()
 
   # pixels = np.empty([width, height], dtype=np.uint8)
   # for x in range(width):
