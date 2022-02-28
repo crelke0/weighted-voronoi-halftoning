@@ -16,6 +16,9 @@ class Vector:
       return
     self.x, self.y = args
 
+  def at_axis(self, axis):
+    return self.x if axis == 0 else self.y
+
   def __add__(self, other):
     return Vector(self.x + other.x, self.y + other.y)
 
@@ -83,33 +86,53 @@ class KDNode:
   # finds the nearest neighbor of a point
   # point {Vector} the point to find the nearest neighbor of
   # return {tuple} (nearest neighbor {KDNode}, squared distance {float})
-  def find_nn(self, point, depth):
-    find_sq_dist = lambda a, b: (a.pos.x - b.pos.x)**2 + (a.pos.y - b.pos.y)**2
-    self_sq_dist = find_sq_dist(self.pos, point)
+  def find_nn(self, target, depth=0):
+    axis = depth%2
+    find_sq_dist = lambda a, b: (a.x - b.x)**2 + (a.y - b.y)**2
+    best_sq_dist = find_sq_dist(self.pos, target)
+    nn = self
     if self.left == None and self.left == None:
-      return self_sq_dist, self
-         
+      return self
+    first_subtree = self.right
+    second_subtree = self.left
+    if self.right == None or target.at_axis(axis) < self.pos.at_axis(axis):
+      first_subtree = self.left
+      second_subtree = self.right
+
+    first_nn = first_subtree.find_nn(target, depth + 1)
+    first_sq_dist = find_sq_dist(first_nn.pos, target)
+    if first_sq_dist < best_sq_dist:
+      best_sq_dist = first_sq_dist
+      nn = first_nn
+
+    axis_sq_dist = (first_nn.pos.at_axis(axis) - target.at_axis(axis))**2
+    if second_subtree != None and axis_sq_dist < first_sq_dist:
+      second_nn = second_subtree.find_nn(target, depth + 1)
+      second_sq_dist = find_sq_dist(second_nn.pos, target)
+      if second_sq_dist < best_sq_dist:
+        best_sq_dist = second_sq_dist
+        nn = second_nn
+
+    return nn
 
 def main():
-  width = 500
-  height = 500
-  img = Image.new(mode="RGB", size=(width, height), color=(255, 255, 255))
+  with Image.open("picture.png") as input_img:
+    input_pixels = input_img.load()
+  width, height = input_pixels.shape
   
   points = []
   point_count = 100
   for _ in range(point_count):
     points.append(Vector(random.random()*width, random.random()*height))
-  # draw.point(points, fill=(0, 0, 0))
   tree = KDNode.create_tree(points)
 
   pixels = np.empty([width, height], dtype=np.uint8)
   for x in range(width):
     for y in range(height):
-      nn, _ = tree.find_nn(Vector(x, y))
+      nn = tree.find_nn(Vector(x, y))
       pixels[x, y] = nn.color
-      # draw.point(((x, y)), fill=nn.color)
-  img = Image.fromarray(pixels)
-  img.show()
+  res = Image.fromarray(pixels)
+  res.show()
 
 if __name__ == "__main__":
   main()
