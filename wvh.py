@@ -34,6 +34,9 @@ class Vector:
   def __floordiv__(self, n):
     return Vector(self.x//n, self.y//n)
 
+  def __eq__(self, other):
+    return self.x == other.x and self.y == other.y
+
 class KDNode:
   # constructor for KDNode
   # pos {Vector} position of node
@@ -121,6 +124,20 @@ class KDNode:
 
     return nn
 
+  # gets a list of nodes in subtree
+  # return {list} list of nodes
+  def get_nodes(self):
+    nodes = [self]
+    if self.left != None:
+      nodes += self.left.get_nodes()
+    if self.right != None:
+      nodes += self.right.get_nodes()
+    return nodes
+
+  # displays nodes
+  # draw {draw} draw object
+  # r {float} radius of dots
+  # s {float} scale of canvas
   def display(self, draw, r, s):
     bound = (self.pos.x*s - r, self.pos.y*s - r, self.pos.x*s + r, self.pos.y*s + r)
     draw.ellipse(bound, fill=(0, 0, 0))
@@ -144,29 +161,41 @@ def get_pdf(pixels):
 # height {int} height of image
 # pdf {function} probability density function
 # return {list} list of relaxed seeds
+# return {list} list of densities for the seeds (0-1 normalized)
 def relax_seeds(tree, width, height, pdf):
   vector_sums = {}
+  weight_sums = {}
   totals = {}
+  nodes = tree.get_nodes()
+  for node in nodes:
+    n = pdf(node.pos.x, node.pos.y)
+    i = id(node)
+    vector_sums[i] = node.pos
+    weight_sums[i] = n
+    totals[i] = 1
   for x in range(width):
     for y in range(height):
       nn = tree.find_nn(Vector(x, y))
       i = id(nn)
-      if i not in vector_sums.keys():
-        vector_sums[i] = Vector(0, 0)
-        totals[i] = 0
+      if nn.pos == Vector(x, y):
+        continue
+      
       n = pdf(x, y)
-      vector_sums[i] += Vector(x, y)*n
-      totals[i] += n
+      vector_sums[i] += Vector(x, y)
+      weight_sums[i] = n
+      totals[i] += 1
   points = []
-  for v1, v2 in zip(vector_sums.values(), totals.values()):
+  densities = []
+  for v1, v2, v3, in zip(vector_sums.values(), weight_sums.values(), totals.values()):
     points.append(v1/v2)
-  print(len(points))
-  return KDNode.create_tree(points)
+    densities.append(v2/v3)
+
+  return points, densities
 
 # binary search
 # arr {list} list of numbers
-# item {number} item to search for
-# return {number} the closest number (below) in the list to the item
+# item {float} item to search for
+# return {float} the closest number (below) in the list to the item
 def search(arr, item):
   if len(arr) == 1:
     return arr[0]
@@ -203,6 +232,23 @@ def importance_sampling(pdf, width, height, point_count):
       del dictionary[key]
   return points
 
+# draws points
+# points {list} list of point to draw
+# densities {list} list of densities of the points sites
+# min_r {float} minimum radius the dots can be
+# max_r {float} maximum radius the dots can be
+# width {int} inputted picture's width
+# height {int} inputted picture's height
+# scale {float} how much bigger the displayed image should be than the inputted image
+def draw(points, densities, min_r, max_r, width, height, scale):
+  res = Image.new("RGB", round((width*scale), round(height*scale)), (255, 255, 255))
+  draw = ImageDraw.Draw(res)
+  for point, density in zip(points, densities):
+    r = density*(max_r - min_r) + min_r
+    bound = (point.x*scale - r, point.y*scale - r, point.x*scale + r, point.y*scale + r)
+    draw.ellipse(bound, fill=(0, 0, 0))
+  res.show()
+
 def main():
   # read input picture
   with Image.open("picture.png") as input_img:
@@ -213,35 +259,16 @@ def main():
   # initializes seeds
   point_count = 1000
   points = importance_sampling(pdf, width, height, point_count)
-  # for _ in range(point_count):
-  #   points.append(Vector(random.random()*width, random.random()*height))
   tree = KDNode.create_tree(points)
 
   # relaxes points
-  iterations = 10
+  iterations = 30
   for _ in range(iterations):
+    points, densities = relax_seeds(tree, width, height, pdf)
+    min_r = 0.3
+    max_r = 2
     scale = 2
-    radius = 2
-    res = Image.new("RGB", (width*scale, height*scale), (255, 255, 255))
-    draw = ImageDraw.Draw(res)
-    tree.display(draw, radius, scale)
-    res.show()
-    tree = relax_seeds(tree, width, height, pdf)
-
-  # display dots
-  scale = 2
-  radius = 2
-  res = Image.new("RGB", (width*scale, height*scale), (255, 255, 255))
-  draw = ImageDraw.Draw(res)
-  tree.display(draw, radius, scale)
-  res.show()
-
-  # pixels = np.empty([width, height], dtype=np.uint8)
-  # for x in range(width):
-  #   for y in range(height):
-  #     nn = tree.find_nn(Vector(x, y))
-  #     pixels[x, y] = nn.color
-  # res = Image.fromarray(pixels)
-  # res.show()
+    draw(points, densities, min_r, max_r, width, height, scale)
+    tree = KDNode.create_tree(points)
 if __name__ == "__main__":
   main()
