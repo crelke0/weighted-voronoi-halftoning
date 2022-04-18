@@ -241,7 +241,7 @@ def importance_sampling(pdf, width, height, point_count):
 # height {int} inputted picture's height
 # scale {float} how much bigger the displayed image should be than the inputted image
 def draw(points, densities, min_r, max_r, width, height, scale):
-  res = Image.new("RGB", round((width*scale), round(height*scale)), (255, 255, 255))
+  res = Image.new("RGB", (round(width*scale), round(height*scale)), (255, 255, 255))
   draw = ImageDraw.Draw(res)
   for point, density in zip(points, densities):
     r = density*(max_r - min_r) + min_r
