@@ -138,29 +138,66 @@ def get_pdf(pixels):
     return 255 - (r + g + b)/3
   return pdf
 
-# relaxes points (moves them to the weighted center of their site)
+# relaxes seeds (moves them to the weighted center of their site)
 # tree {KDNode} the tree to be relaxed
 # width {int} width of image
 # height {int} height of image
 # pdf {function} probability density function
-def relax_points(tree, width, height, pdf):
+# return {list} list of relaxed seeds
+def relax_seeds(tree, width, height, pdf):
   vector_sums = {}
-  total_sums = {}
+  totals = {}
   for x in range(width):
     for y in range(height):
       nn = tree.find_nn(Vector(x, y))
       i = id(nn)
       if i not in vector_sums.keys():
         vector_sums[i] = Vector(0, 0)
-        total_sums[i] = 0
+        totals[i] = 0
       n = pdf(x, y)
       vector_sums[i] += Vector(x, y)*n
-      total_sums[i] += n
+      totals[i] += n
   points = []
-  for v1, v2 in zip(vector_sums.values(), total_sums.values()):
+  for v1, v2 in zip(vector_sums.values(), totals.values()):
     points.append(v1/v2)
   print(len(points))
   return KDNode.create_tree(points)
+
+def search(arr, item):
+  if len(arr) == 1:
+    return arr[0]
+  mid = len(arr)//2
+  if item > arr[mid]:
+    return search(arr[mid:], item)
+  elif item < arr[mid]:
+    return search(arr[:mid], item)
+  return item
+
+# creates a list of random points, favoring points with a higher pdf score
+# pdf {function} probability densitiy function 
+# width {int} width of the image
+# height {int} height of the image
+# point_count {int} the desired amount of points
+# return {list} list of sampled points
+def importance_sampling(pdf, width, height, point_count):
+  dictionary = {}
+  for x in range(width):
+    for y in range(height):
+      intensity = pdf(x, y)
+      if intensity in dictionary.keys():
+        dictionary[intensity].append(Vector(x, y))
+      else:
+        dictionary[intensity] = [Vector(x, y)]
+  points = []
+  for i in range(point_count):
+    rand = random.random()*32895
+    intensity = math.floor((math.sqrt(1 + 8*rand) - 1)/2)
+    
+    key = search(list(dictionary.keys()), intensity)
+    points.append(dictionary[key].pop())
+    if dictionary[key] == []:
+      del dictionary[key]
+  return points
 
 def main():
   # read input picture
@@ -170,16 +207,22 @@ def main():
   pdf = get_pdf(input_pixels)
 
   # initializes seeds
-  points = []
-  point_count = 3000
-  for _ in range(point_count):
-    points.append(Vector(random.random()*width, random.random()*height))
+  point_count = 1000
+  points = importance_sampling(pdf, width, height, point_count)
+  # for _ in range(point_count):
+  #   points.append(Vector(random.random()*width, random.random()*height))
   tree = KDNode.create_tree(points)
 
   # relaxes points
   iterations = 10
   for _ in range(iterations):
-    tree = relax_points(tree, width, height, pdf)
+    scale = 2
+    radius = 2
+    res = Image.new("RGB", (width*scale, height*scale), (255, 255, 255))
+    draw = ImageDraw.Draw(res)
+    tree.display(draw, radius, scale)
+    res.show()
+    tree = relax_seeds(tree, width, height, pdf)
 
   # display dots
   scale = 2
@@ -196,6 +239,5 @@ def main():
   #     pixels[x, y] = nn.color
   # res = Image.fromarray(pixels)
   # res.show()
-
 if __name__ == "__main__":
   main()
