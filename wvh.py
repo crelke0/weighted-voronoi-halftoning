@@ -163,6 +163,10 @@ def relax_seeds(tree, width, height, pdf):
   print(len(points))
   return KDNode.create_tree(points)
 
+# binary search
+# arr {list} list of numbers
+# item {number} item to search for
+# return {number} the closest number (below) in the list to the item
 def search(arr, item):
   if len(arr) == 1:
     return arr[0]
