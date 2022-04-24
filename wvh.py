@@ -134,18 +134,6 @@ class KDNode:
       nodes += self.right.get_nodes()
     return nodes
 
-  # displays nodes
-  # draw {draw} draw object
-  # r {float} radius of dots
-  # s {float} scale of canvas
-  def display(self, draw, r, s):
-    bound = (self.pos.x*s - r, self.pos.y*s - r, self.pos.x*s + r, self.pos.y*s + r)
-    draw.ellipse(bound, fill=(0, 0, 0))
-    if self.left != None:
-      self.left.display(draw, r, s)
-    if self.right != None:
-      self.right.display(draw, r, s)
-
 # creates a probability density function (ranges from 255 to 0. 255 in dark regions, 0 in light regions)
 # pixels {list} the input image's pixels
 # return {function} the probability density function
@@ -170,7 +158,7 @@ def relax_seeds(tree, width, height, pdf):
   for node in nodes:
     n = pdf(node.pos.x, node.pos.y)
     i = id(node)
-    vector_sums[i] = node.pos
+    vector_sums[i] = node.pos*n
     weight_sums[i] = n
     totals[i] = 1
   for x in range(width):
@@ -181,14 +169,16 @@ def relax_seeds(tree, width, height, pdf):
         continue
       
       n = pdf(x, y)
-      vector_sums[i] += Vector(x, y)
-      weight_sums[i] = n
+      vector_sums[i] += Vector(x, y)*n
+      weight_sums[i] += n
       totals[i] += 1
   points = []
   densities = []
-  for v1, v2, v3, in zip(vector_sums.values(), weight_sums.values(), totals.values()):
-    points.append(v1/v2)
-    densities.append(v2/v3)
+  for s, w, t, in zip(vector_sums.values(), weight_sums.values(), totals.values()):
+    if w == 0:
+      w = 1
+    points.append(s/w)
+    densities.append(w/(t*255))
 
   return points, densities
 
@@ -244,7 +234,7 @@ def draw(points, densities, min_r, max_r, width, height, scale):
   res = Image.new("RGB", (round(width*scale), round(height*scale)), (255, 255, 255))
   draw = ImageDraw.Draw(res)
   for point, density in zip(points, densities):
-    r = density*(max_r - min_r) + min_r
+    r = (density - 1)*(max_r - min_r) + min_r
     bound = (point.x*scale - r, point.y*scale - r, point.x*scale + r, point.y*scale + r)
     draw.ellipse(bound, fill=(0, 0, 0))
   res.show()
@@ -257,17 +247,17 @@ def main():
   pdf = get_pdf(input_pixels)
 
   # initializes seeds
-  point_count = 1000
+  point_count = 10000
   points = importance_sampling(pdf, width, height, point_count)
   tree = KDNode.create_tree(points)
 
   # relaxes points
-  iterations = 30
+  iterations = 100
   for _ in range(iterations):
     points, densities = relax_seeds(tree, width, height, pdf)
-    min_r = 0.3
-    max_r = 2
-    scale = 2
+    min_r = 4
+    max_r = 7
+    scale = 3
     draw(points, densities, min_r, max_r, width, height, scale)
     tree = KDNode.create_tree(points)
 if __name__ == "__main__":
