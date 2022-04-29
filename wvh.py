@@ -247,12 +247,12 @@ def main():
   pdf = get_pdf(input_pixels)
 
   # initializes seeds
-  point_count = 10000
+  point_count = int(input("point count: "))
   points = importance_sampling(pdf, width, height, point_count)
   tree = KDNode.create_tree(points)
 
   # relaxes points
-  iterations = 100
+  iterations = int(input("iterations: "))
   for _ in range(iterations):
     points, densities = relax_seeds(tree, width, height, pdf)
     min_r = 4
