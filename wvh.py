@@ -247,18 +247,25 @@ def main():
   pdf = get_pdf(input_pixels)
 
   # initializes seeds
-  point_count = int(input("point count: "))
+  point_count = int(input("point count: ")) # 10,000 recommended for colosseum picture
   points = importance_sampling(pdf, width, height, point_count)
   tree = KDNode.create_tree(points)
 
   # relaxes points
-  iterations = int(input("iterations: "))
+  iterations = int(input("iterations: ")) # 100 recommended for colosseum picture; you can stop it at any time
+
   for _ in range(iterations):
     points, densities = relax_seeds(tree, width, height, pdf)
-    min_r = 4
-    max_r = 7
-    scale = 3
+    min_r = int(input("minimum point radius: ")) # 4 recommended for colosseum picture
+    max_r = int(input("minimum point radius: ")) # 7 recommended for colosseum picture
+    scale =  int(input("scale: ")) # 3 recommended for colosseum picture
     draw(points, densities, min_r, max_r, width, height, scale)
     tree = KDNode.create_tree(points)
 if __name__ == "__main__":
   main()
+
+
+# 1. put the picture that you want to halftone in the same folder as this script and name it “picture.png.”
+# 2. run this script.
+# 4. input values when prompted in the console. recommended values for the colosseum picture are 10000, 100, 4, 7, and 3, for point count, iterations, minimum point radius, maximum point radius, and scale respectively.
+# each iteration will output a picture. stop the program when you’ve made it through all the iterations, or when you’re happy with the result.
