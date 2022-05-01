@@ -121,7 +121,6 @@ class KDNode:
       if second_sq_dist < best_sq_dist:
         best_sq_dist = second_sq_dist
         nn = second_nn
-
     return nn
 
   # gets a list of nodes in subtree
