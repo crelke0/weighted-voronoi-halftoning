@@ -268,3 +268,5 @@ if __name__ == "__main__":
 # 2. run this script.
 # 4. input values when prompted in the console. recommended values for the colosseum picture are 10000, 100, 4, 7, and 3, for point count, iterations, minimum point radius, maximum point radius, and scale respectively.
 # each iteration will output a picture. stop the program when you’ve made it through all the iterations, or when you’re happy with the result.
+
+# colosseum picture and inspiration for project found at https://maxhalford.github.io/blog/halftoning-2/
