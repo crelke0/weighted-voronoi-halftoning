@@ -50,8 +50,8 @@ class KDNode:
     self.color = id(self)*51234517%256
 
   # creates tree from list of points
-  # points {list}
-  # return {KDNode}
+  # points {list} the inputted points
+  # return {KDNode} the root node of the tree
   @staticmethod
   def create_tree(points, depth=0):
     # base case
